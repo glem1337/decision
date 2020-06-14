@@ -1,0 +1,28 @@
+.money-list {
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+        content: '';
+        position: absolute;
+        top: -10px;
+        left: 0;
+        width: 1px;
+        height: 100%;
+    }
+
+    li {
+        position: relative;
+        padding-left: 19px;
+
+        &::before {
+            content: "";
+            position: absolute;
+            top: 50%;
+            left: 1px;
+            width: 12px;
+            height: 1px;
+            margin-top: -1px;
+        }
+    }
+}
