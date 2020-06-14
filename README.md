@@ -9,7 +9,7 @@
  - `npm start` to start the local server (this project uses create-react-app)
  
 ## Used tools
-- node version 10.15.3
+- node version 12.16.3
 - react-create-app;
 - ReactJS;
 - react-dnd;
