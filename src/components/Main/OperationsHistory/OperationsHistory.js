@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import ControlPanel from './ControlPanel/ControlPanel';
 import DayBlock from './DayBlock/DayBlock';
 import AddOperation from './AddOperation/AddOperation';
-import { DndProvider } from 'react-dnd';
-import { HTML5Backend } from 'react-dnd-html5-backend';
+import { DragDropContext, Droppable } from 'react-beautiful-dnd';
 import RemoveArea from './RemoveArea/RemoveArea';
+import { ItemTypes } from './ItemTypes';
 
 const LIST = [
     {
@@ -65,20 +65,35 @@ const INITIAL_STATE = [
 
 const OperationsHistory = () => {
     const [days, setDays] = useState(INITIAL_STATE);
+    const [canDrop, setCanDrop] = useState(false);
 
     const removeOperation = (cardID, dayID) => {
         setDays((prevState) => {
             prevState[dayID].list.splice(cardID, 1);
             return [...prevState];
         });
+        setCanDrop(false);
     };
 
-    const copyOperation = (to, from, cardID) => {
+    const copyOperation = (srcID, destID, cardID) => {
         setDays((prevState) => {
-            const copyEl = prevState[from].list[cardID];
-            prevState[to].list.push(copyEl);
+            const copyEl = prevState[srcID].list[cardID];
+            prevState[destID].list.push(copyEl);
             return [...prevState];
         });
+        setCanDrop(false);
+    };
+
+    const reorderOperation = (srcID, startIndex, endIndex) => {
+        const result = [...days[srcID].list];
+        const [removed] = result.splice(startIndex, 1);
+        result.splice(endIndex, 0, removed);
+
+        setDays((prevState) => {
+            prevState[srcID].list = result;
+            return [...prevState];
+        });
+        setCanDrop(false);
     };
 
     const updateDescription = (dayID, cardID, description) => {
@@ -91,22 +106,81 @@ const OperationsHistory = () => {
         });
     };
 
+    const moveOperation = (srcID, destID, droppableSource, droppableDestination) => {
+        const sourceClone = [...days[srcID].list];
+        const destClone = [...days[destID].list];
+        const [removed] = sourceClone.splice(droppableSource, 1);
+        destClone.splice(droppableDestination, 0, removed);
+
+        setDays((prevState) => {
+            prevState[srcID].list = sourceClone;
+            prevState[destID].list = destClone;
+            return [...prevState];
+        });
+        setCanDrop(false);
+    };
+
+    const getId = (id) => {
+        return id.split('-')[1];
+    };
+
+    const getAction = (id) => {
+        return id.split('-')[0];
+    };
+
+    const onDragStart = () => {
+        setCanDrop(true);
+    };
+
+    const onDragEnd = (result) => {
+        const { source, destination } = result;
+
+        if (!destination) {
+            setCanDrop(false);
+            return;
+        }
+
+        const action = getAction(destination.droppableId);
+        const srcID = getId(source.droppableId);
+        const destID = getId(destination.droppableId);
+
+        if (action === 'list') {
+            if (srcID === destID) {
+                reorderOperation(srcID, source.index, destination.index);
+            } else {
+                moveOperation(srcID, destID, source.index, destination.index);
+            }
+        } else if (action === 'copy') {
+            copyOperation(srcID, destID, source.index);
+        } else if (action === 'remove') {
+            removeOperation(source.index, srcID);
+        }
+    };
+
     return (
         <React.Fragment>
             <ControlPanel />
-            <DndProvider backend={HTML5Backend}>
+            <DragDropContext onDragStart={onDragStart} onDragEnd={onDragEnd}>
                 {days.map((day, index) => (
                     <DayBlock
-                        removeOperation={removeOperation}
-                        copyOperation={copyOperation}
+                        key={`drop-list-${index}`}
                         updateDescription={updateDescription}
                         data={day}
                         id={index}
-                        key={`day-block-${index}`}
+                        canDrop={canDrop}
                     />
                 ))}
-                <RemoveArea />
-            </DndProvider>
+                <Droppable droppableId={`remove-1`} type={ItemTypes.OPERATION}>
+                    {(provided, snapshot) => (
+                        <RemoveArea
+                            innerRef={provided.innerRef}
+                            {...provided.droppableProps}
+                            isOver={snapshot.isDraggingOver}
+                            canDrop={canDrop}
+                        />
+                    )}
+                </Droppable>
+            </DragDropContext>
             <AddOperation />
         </React.Fragment>
     );

@@ -125,6 +125,7 @@ module.exports = {
     variants: {
         backgroundColor: ['responsive', 'hover', 'focus', 'before'],
         fill: ['responsive', 'hover'],
+        zIndex: ['responsive', 'hover', 'focus'],
     },
     plugins: [
         require('tailwindcss-pseudo-elements'),

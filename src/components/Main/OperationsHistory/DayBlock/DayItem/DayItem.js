@@ -1,9 +1,7 @@
 import React from 'react';
-import { useDrag } from 'react-dnd';
 import PropTypes from 'prop-types';
 import Icon from '../../../../Icon/Icon';
 import classNames from 'classnames';
-import { ItemTypes } from '../../ItemTypes';
 import TextareaAutosize from 'react-textarea-autosize';
 import './DayItem.scss';
 
@@ -11,29 +9,13 @@ const DayItem = ({
     operation: { grow, name, from, organization, operation, description, paid, balance },
     cardID,
     dayID,
-    removeOperation,
-    copyOperation,
     updateDescription,
+    innerRef,
+    isDragging,
+    isDraggingOver,
+    ...props
 }) => {
     const onDescriptionChange = (e) => updateDescription(dayID, cardID, e.currentTarget.value);
-
-    const [{ isDragging }, dragRef] = useDrag({
-        item: { type: ItemTypes.OPERATION, cardID, dayID },
-        end: (item, monitor) => {
-            const dropResult = monitor.getDropResult();
-            if (item && dropResult) {
-                const { action } = dropResult;
-                if (action === 'remove') {
-                    removeOperation(item.cardID, item.dayID);
-                } else if (action === 'copy') {
-                    copyOperation(dropResult.copyTo, item.dayID, item.cardID);
-                }
-            }
-        },
-        collect: (monitor) => ({
-            isDragging: monitor.isDragging(),
-        }),
-    });
 
     const growClass = classNames('inline-flex justify-center items-center rounded-lg', {
         'fill-primary-500 bg-primary-100': grow,
@@ -51,16 +33,25 @@ const DayItem = ({
             'bg-secondary-100 text-secondary-500': !paid,
         }
     );
+
+    let isOver = false;
+    const action = isDraggingOver ? isDraggingOver.split('-')[0] : isDraggingOver;
+
+    if (action === 'copy' || action === 'remove') {
+        isOver = true;
+    }
+
     const itemClass = classNames(
-        'day-item hover:bg-gray-200 hover:shadow flex rounded-lg cursor-move items-center',
+        'day-item hover:bg-gray-200 hover:shadow relative flex rounded-lg items-center',
         {
-            'opacity-0': isDragging,
-            'opacity-100': !isDragging,
+            'bg-gray-200 shadow': isDragging,
+            'bg-gray-100': !isDragging,
+            'opacity-75': isOver,
         }
     );
 
     return (
-        <li ref={dragRef} className={itemClass}>
+        <li ref={innerRef} {...props} className={itemClass}>
             <div className="day-item__grow text-right">
                 <span className={growClass}>
                     <Icon name={growIcon} width="8px" height="12px" />
@@ -76,7 +67,7 @@ const DayItem = ({
                 <div className="leading-md">{organization}</div>
                 <div className="text-xxs leading-md text-gray-900">{operation}</div>
             </div>
-            <div className="day-item__description leading-md cursor-text flex">
+            <div className="day-item__description leading-md flex">
                 <TextareaAutosize
                     onChange={onDescriptionChange}
                     className="bg-transparent w-full focus:outline-none focus:border-ce hover:border-ce border-b border-transparent resize-none"
@@ -94,11 +85,6 @@ const DayItem = ({
 };
 
 DayItem.propTypes = {
-    cardID: PropTypes.number.isRequired,
-    dayID: PropTypes.number.isRequired,
-    removeOperation: PropTypes.func.isRequired,
-    copyOperation: PropTypes.func.isRequired,
-    updateDescription: PropTypes.func.isRequired,
     operation: PropTypes.exact({
         grow: PropTypes.bool.isRequired,
         name: PropTypes.string.isRequired,
@@ -109,6 +95,12 @@ DayItem.propTypes = {
         paid: PropTypes.bool.isRequired,
         balance: PropTypes.string.isRequired,
     }),
+    cardID: PropTypes.number.isRequired,
+    dayID: PropTypes.number.isRequired,
+    updateDescription: PropTypes.func.isRequired,
+    innerRef: PropTypes.func.isRequired,
+    isDragging: PropTypes.bool.isRequired,
+    isDraggingOver: PropTypes.string,
 };
 
 export default DayItem;
